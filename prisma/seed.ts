@@ -1,13 +1,47 @@
 /**
- * بيانات تجريبية لنظام Villa Marina - للعرض والاختبار فقط.
  * التشغيل: npm run db:seed
+ *
+ * وضعان:
+ *  - تطوير/عرض (الافتراضي): حسابان بكلمة مرور معروفة ChangeMe123! + حجوزات تجريبية.
+ *  - إنتاج (SEED_DEMO_DATA=false، يُشغَّل تلقائياً عند كل نشر عبر vercel-build):
+ *    حساب المالك فقط، بكلمة المرور من ADMIN_INITIAL_PASSWORD. يُنشأ مرة واحدة
+ *    فقط - النشر اللاحق لا يمسّ كلمة مروره إن غيّرها المالك من داخل النظام.
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+async function seedProductionOwner() {
+  const email = process.env.ADMIN_EMAIL || "admin@villamarina.ly";
+  const password = process.env.ADMIN_INITIAL_PASSWORD;
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    console.log(`حساب المالك ${email} موجود مسبقاً - لا تغيير.`);
+    return;
+  }
+  if (!password || password.length < 12) {
+    throw new Error("ADMIN_INITIAL_PASSWORD مطلوب (12 حرفاً على الأقل) لإنشاء حساب المالك لأول مرة.");
+  }
+
+  await prisma.user.create({
+    data: {
+      fullName: "مالك الاستراحة",
+      email,
+      passwordHash: await bcrypt.hash(password, 10),
+      role: "ADMIN",
+    },
+  });
+  console.log(`تم إنشاء حساب المالك ${email}.`);
+}
+
 async function main() {
+  if (process.env.SEED_DEMO_DATA === "false") {
+    await seedProductionOwner();
+    return;
+  }
+
   const passwordHash = await bcrypt.hash("ChangeMe123!", 10);
 
   const admin = await prisma.user.upsert({
@@ -20,12 +54,6 @@ async function main() {
     update: {},
     create: { fullName: "موظف الحجوزات", email: "staff@villamarina.ly", passwordHash, role: "STAFF" },
   });
-
-  // على قاعدة بيانات الإنتاج: SEED_DEMO_DATA=false لإنشاء الحسابات فقط بلا حجوزات وهمية
-  if (process.env.SEED_DEMO_DATA === "false") {
-    console.log("تم إنشاء الحسابات فقط (بدون حجوزات تجريبية).");
-    return;
-  }
 
   const now = new Date();
   const y = now.getUTCFullYear();

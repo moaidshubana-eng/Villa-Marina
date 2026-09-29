@@ -77,28 +77,26 @@ npm run build
 الطريقة الموصى بها: **Vercel** (استضافة) + **Neon** (قاعدة بيانات) - كلاهما
 مجاني للبداية.
 
-1. **Neon** ([neon.tech](https://neon.tech)): أنشئ مشروعاً، وانسخ رابطَي
-   الاتصال: *Pooled* (يحتوي `pooler`) و*Direct*.
+1. **Neon** ([neon.tech](https://neon.tech)): أنشئ مشروعاً، وانسخ رابط الاتصال
+   *Pooled* (يحتوي `-pooler`). الرابط *Direct* هو نفسه بدون `-pooler`.
 2. **Vercel** ([vercel.com](https://vercel.com)): سجّل بحساب GitHub ←
    *Add New → Project* ← اختر هذا المستودع، وأضف متغيرات البيئة:
 
    | المتغير | القيمة |
    |---|---|
-   | `DATABASE_URL` | رابط Neon الـ Pooled |
-   | `DIRECT_URL` | رابط Neon الـ Direct |
+   | `DATABASE_URL` | رابط Neon الـ Pooled + `&pgbouncer=true` في آخره |
+   | `DIRECT_URL` | نفس الرابط بدون `-pooler` |
    | `AUTH_SECRET` | نص عشوائي طويل (32 حرفاً فأكثر) |
+   | `ADMIN_INITIAL_PASSWORD` | كلمة مرور حساب المالك الأولى (12 حرفاً فأكثر) |
    | `CURRENCY_LABEL` | `د.ل` |
 
    ثم *Deploy*.
-3. **مرة واحدة بعد أول نشر** - من أي جهاز فيه المشروع، بنفس القيم في `.env`:
 
-   ```bash
-   npx prisma migrate deploy
-   SEED_DEMO_DATA=false npm run db:seed   # حساب المالك والموظف فقط، بلا حجوزات وهمية
-   ```
-
-   ثم ادخل بـ `admin@villamarina.ly` / `ChangeMe123!` وغيّر كلمة المرور فوراً
-   من "إعدادات الحساب".
+كل نشر يشغّل تلقائياً (سكربت `vercel-build`): تطبيق ترحيلات قاعدة البيانات،
+ثم إنشاء حساب المالك `admin@villamarina.ly` **في أول نشر فقط** (بدون أي
+حجوزات أو حسابات تجريبية)، ثم بناء التطبيق - لا حاجة لتشغيل أي أمر يدوياً.
+ادخل بحساب المالك وغيّر كلمة المرور من "إعدادات الحساب"، ثم أضف موظفيك من
+"المستخدمون".
 
 ## الوثائق
 
