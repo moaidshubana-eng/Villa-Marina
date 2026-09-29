@@ -30,10 +30,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isAuthenticated && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
+  // لا نُبعد المسجّل عن /login: المالك يحتاجها ليجرّب حساب موظف أضافه للتو من
+  // نفس الهاتف (كانت تُعيده للرئيسية فيبدو أن حساب الموظف "لا يعمل").
   return NextResponse.next();
 }
 

@@ -95,6 +95,19 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
   return bcrypt.compare(plain, hash);
 }
 
+/**
+ * يُصفّر عدّاد محاولات الدخول الفاشلة لبريد (دخول ناجح، أو إضافة الحساب/إعادة
+ * تعيين كلمة مروره/تفعيله من المالك). بدونه: 5 محاولات فاشلة لبريد قبل إنشاء
+ * حسابه كانت تقفل الحساب الجديد 15 دقيقة. السجلات لا تُحذف - يتغيّر نوعها فقط
+ * فتبقى في سجل التدقيق ولا تُحتسب في الحد.
+ */
+export async function clearLoginFailures(email: string) {
+  await prisma.auditLog.updateMany({
+    where: { entityType: "LoginAttempt", entityId: email.trim().toLowerCase(), action: "LOGIN_FAILED" },
+    data: { action: "LOGIN_FAILED_CLEARED" },
+  });
+}
+
 /** فشل التدقيق لا يجب أن يُفشل العملية الأساسية نفسها. */
 export async function writeAuditLog(params: {
   userId?: string | null;

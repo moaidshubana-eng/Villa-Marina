@@ -10,6 +10,7 @@ import {
   SESSION_MAX_AGE_SECONDS,
   verifyPassword,
   writeAuditLog,
+  clearLoginFailures,
 } from "@/src/lib/auth";
 
 const loginSchema = z.object({
@@ -57,7 +58,11 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
     return { error: `محاولات دخول خاطئة كثيرة. حاول مرة أخرى بعد ${LOCKOUT_MINUTES} دقيقة.` };
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  // بحث غير حساس لحالة الأحرف: حسابات أُضيفت بإصدار قديم قد يكون بريدها مخزّناً "Ahmed@Gmail.com"
+  const user = await prisma.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+    orderBy: { createdAt: "asc" },
+  });
   const ok = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
 
   if (!user || !ok) {
@@ -89,6 +94,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
 
+  await clearLoginFailures(email);
   await writeAuditLog({ userId: user.id, action: "LOGIN", entityType: "User", entityId: user.id });
 
   redirect(safeNextPath(formData.get("next")));

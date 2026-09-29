@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma";
-import { requireRole, hashPassword, writeAuditLog } from "@/src/lib/auth";
+import { requireRole, hashPassword, writeAuditLog, clearLoginFailures } from "@/src/lib/auth";
 import { CAN_MANAGE_USERS } from "@/src/lib/rbac";
 
 export type FormState = { error?: string; success?: string };
@@ -28,6 +28,12 @@ export async function createUserAction(_prev: FormState, formData: FormData): Pr
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "بيانات غير صالحة" };
   }
+
+  const taken = await prisma.user.findFirst({
+    where: { email: { equals: parsed.data.email, mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (taken) return { error: "البريد الإلكتروني مستخدم مسبقاً" };
 
   const passwordHash = await hashPassword(parsed.data.password);
 
@@ -54,8 +60,12 @@ export async function createUserAction(_prev: FormState, formData: FormData): Pr
     throw e;
   }
 
+  await clearLoginFailures(parsed.data.email);
+
   revalidatePath("/users");
-  return { success: "تمت إضافة المستخدم بنجاح" };
+  return {
+    success: `تمت إضافة "${parsed.data.fullName}" - يدخل بالبريد ${parsed.data.email} وكلمة المرور التي كتبتها.`,
+  };
 }
 
 export async function setUserActiveAction(targetUserId: string, isActive: boolean) {
@@ -65,7 +75,8 @@ export async function setUserActiveAction(targetUserId: string, isActive: boolea
     throw new Error("لا يمكنك إيقاف حسابك الخاص");
   }
 
-  await prisma.user.update({ where: { id: targetUserId }, data: { isActive } });
+  const target = await prisma.user.update({ where: { id: targetUserId }, data: { isActive } });
+  if (isActive) await clearLoginFailures(target.email);
 
   await writeAuditLog({
     userId: session.sub,
@@ -125,7 +136,8 @@ export async function resetUserPasswordAction(
   }
 
   const passwordHash = await hashPassword(parsed.data.newPassword);
-  await prisma.user.update({ where: { id: targetUserId }, data: { passwordHash } });
+  const target = await prisma.user.update({ where: { id: targetUserId }, data: { passwordHash } });
+  await clearLoginFailures(target.email);
 
   await writeAuditLog({
     userId: session.sub,

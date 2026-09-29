@@ -87,6 +87,12 @@ export async function updateProfileAction(_prev: FormState, formData: FormData):
     return { error: "كلمة المرور الحالية غير صحيحة" };
   }
 
+  const taken = await prisma.user.findFirst({
+    where: { email: { equals: parsed.data.email, mode: "insensitive" }, id: { not: user.id } },
+    select: { id: true },
+  });
+  if (taken) return { error: "هذا البريد مستخدم لحساب آخر" };
+
   let updated;
   try {
     updated = await prisma.user.update({
