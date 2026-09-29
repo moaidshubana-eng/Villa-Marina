@@ -1,0 +1,18 @@
+version: "3.8"
+
+# قاعدة بيانات محلية للتطوير فقط. لا تُستخدم هذه الإعدادات في الإنتاج.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: villa_user
+      POSTGRES_PASSWORD: villa_pass
+      POSTGRES_DB: villa_marina
+    ports:
+      - "5432:5432"
+    volumes:
+      - villa_marina_db_data:/var/lib/postgresql/data
+
+volumes:
+  villa_marina_db_data:
