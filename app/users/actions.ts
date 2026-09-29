@@ -10,10 +10,10 @@ import { CAN_MANAGE_USERS } from "@/src/lib/rbac";
 export type FormState = { error?: string; success?: string };
 
 const createSchema = z.object({
-  fullName: z.string().min(2, "الاسم مطلوب"),
+  fullName: z.string().trim().min(2, "الاسم مطلوب").max(100, "الاسم طويل جداً"),
   email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
-  password: z.string().min(8, "كلمة المرور يجب ألا تقل عن 8 أحرف"),
-  role: z.nativeEnum(UserRole),
+  password: z.string().min(8, "كلمة المرور يجب ألا تقل عن 8 أحرف").max(200, "كلمة المرور طويلة جداً"),
+  role: z.nativeEnum(UserRole, { message: "دور غير صحيح" }),
 });
 
 export async function createUserAction(_prev: FormState, formData: FormData): Promise<FormState> {

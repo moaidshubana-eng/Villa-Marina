@@ -1,20 +1,19 @@
 import Link from "next/link";
 import { prisma } from "@/src/lib/prisma";
-import { getSession } from "@/src/lib/auth";
+import { requirePageSession } from "@/src/lib/auth";
 import { roleCan, CAN_MANAGE_BOOKINGS } from "@/src/lib/rbac";
 import { formatDate, formatMoney, monthLabel } from "@/src/lib/format";
 import { RENTAL_BOOKING_STATUS_LABELS, RENTAL_BOOKING_STATUS_COLORS } from "@/src/lib/labels";
-import { nightsBetween } from "@/src/lib/rental";
+import { nightsBetween, nightsWithin, todayDateOnly } from "@/src/lib/dates";
 import PageHeader from "@/src/components/PageHeader";
 
 export default async function DashboardPage() {
-  const session = await getSession();
-  const canManage = session ? roleCan(session.role, CAN_MANAGE_BOOKINGS) : false;
+  const session = await requirePageSession();
+  const canManage = roleCan(session.role, CAN_MANAGE_BOOKINGS);
 
-  const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth() + 1;
-  const today = new Date(Date.UTC(year, month - 1, now.getUTCDate()));
+  const today = todayDateOnly();
+  const year = today.getUTCFullYear();
+  const month = today.getUTCMonth() + 1;
   const startOfMonth = new Date(Date.UTC(year, month - 1, 1));
   const startOfNextMonth = new Date(Date.UTC(year, month, 1));
 
@@ -40,14 +39,17 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  // ليالي الشهر المحجوزة فقط (حجز يمتد عبر نهاية/بداية الشهر يُقصّ على حدوده)
-  const bookedNights = monthBookings.reduce((sum, b) => {
-    const from = b.checkInDate > startOfMonth ? b.checkInDate : startOfMonth;
-    const to = b.checkOutDate < startOfNextMonth ? b.checkOutDate : startOfNextMonth;
-    return sum + nightsBetween(from, to);
-  }, 0);
+  // حجز يمتد عبر شهرين تُحسب لياليه ومبلغه لكل شهر بنسبة لياليه فيه، حتى لا
+  // يُحسب المبلغ كاملاً مرتين (مرة في كل شهر).
+  let bookedNights = 0;
+  let expectedRevenue = 0;
+  for (const b of monthBookings) {
+    const inMonth = nightsWithin(b.checkInDate, b.checkOutDate, startOfMonth, startOfNextMonth);
+    const total = nightsBetween(b.checkInDate, b.checkOutDate);
+    bookedNights += inMonth;
+    if (b.totalAmount != null && total > 0) expectedRevenue += (Number(b.totalAmount) * inMonth) / total;
+  }
   const daysInMonth = nightsBetween(startOfMonth, startOfNextMonth);
-  const expectedRevenue = monthBookings.reduce((sum, b) => sum + Number(b.totalAmount ?? 0), 0);
 
   return (
     <div>

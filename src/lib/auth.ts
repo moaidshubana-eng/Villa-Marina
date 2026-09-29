@@ -1,6 +1,8 @@
 import "server-only";
+import { cache } from "react";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import type { UserRole } from "@prisma/client";
@@ -40,10 +42,33 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
   }
 }
 
-export async function getSession(): Promise<SessionPayload | null> {
+/**
+ * الجلسة الحالية، بالبيانات الحالية من قاعدة البيانات لا من الرمز: إيقاف حساب
+ * أو تغيير دوره يسري فوراً بدل انتظار انتهاء صلاحية الرمز (12 ساعة).
+ * cache() يجعل الاستعلام مرة واحدة لكل طلب مهما تكرّر الاستدعاء.
+ */
+export const getSession = cache(async (): Promise<SessionPayload | null> => {
   const token = cookies().get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  return verifySessionToken(token);
+  const payload = await verifySessionToken(token);
+  if (!payload) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.sub },
+    select: { id: true, role: true, fullName: true, email: true, isActive: true },
+  });
+  if (!user || !user.isActive) return null;
+  return { sub: user.id, role: user.role, fullName: user.fullName, email: user.email };
+});
+
+/**
+ * للصفحات: رمز صالح التوقيع لحساب موقوف/محذوف يمرّ من middleware، فنُحوّله إلى
+ * /logout الذي يمسح الكوكي (التحويل لـ /login مباشرة سيُعيده middleware إلى /).
+ */
+export async function requirePageSession(): Promise<SessionPayload> {
+  const session = await getSession();
+  if (!session) redirect("/logout");
+  return session;
 }
 
 export async function requireSession(): Promise<SessionPayload> {

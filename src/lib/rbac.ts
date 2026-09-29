@@ -1,5 +1,8 @@
 import type { UserRole } from "@prisma/client";
 
+/** قائمة الأدوار بلا استيراد قيمة من @prisma/client (كان يسحب مكتبة Prisma إلى المتصفح). */
+export const USER_ROLES: readonly UserRole[] = ["ADMIN", "STAFF", "VIEWER"];
+
 export const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: "مالك / مدير",
   STAFF: "موظف",

@@ -25,7 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {/* فتح/إغلاق القائمة على الهاتف بدون جافاسكربت (checkbox hack) */}
             <input type="checkbox" id="nav-toggle" className="peer hidden" />
 
-            <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:hidden">
+            <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden">
               <label
                 htmlFor="nav-toggle"
                 className="cursor-pointer rounded-lg px-2 py-1 text-2xl leading-none hover:bg-slate-100"
@@ -43,7 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               aria-hidden="true"
             />
 
-            <aside className="fixed inset-y-0 right-0 z-50 w-64 translate-x-full transition-transform duration-200 ease-out peer-checked:translate-x-0 md:static md:z-auto md:w-auto md:translate-x-0">
+            <aside className="fixed inset-y-0 right-0 z-50 w-64 translate-x-full transition-transform duration-200 ease-out peer-checked:translate-x-0 md:sticky md:top-0 md:z-auto md:h-screen md:w-auto md:translate-x-0">
               <Nav session={session} />
             </aside>
 

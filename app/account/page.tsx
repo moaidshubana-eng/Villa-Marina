@@ -1,13 +1,11 @@
-import { redirect } from "next/navigation";
-import { getSession } from "@/src/lib/auth";
+import { requirePageSession } from "@/src/lib/auth";
 import { ROLE_LABELS } from "@/src/lib/rbac";
 import PageHeader from "@/src/components/PageHeader";
 import ChangePasswordForm from "./ChangePasswordForm";
 import ProfileForm from "./ProfileForm";
 
 export default async function AccountPage() {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requirePageSession();
 
   return (
     <div>

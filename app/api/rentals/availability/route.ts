@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/src/lib/auth";
-import { parseDateOnly, findConflictingBookings, formatDateOnly } from "@/src/lib/rental";
+import { MAX_NIGHTS, parseDateOnly, isValidDateOnly, nightsBetween, formatDateOnly } from "@/src/lib/dates";
+import { findConflictingBookings } from "@/src/lib/rental";
 
 /**
- * تحقق فوري (يُستدعى من BookingForm أثناء اختيار التواريخ، قبل الإرسال) من
- * توفّر فترة معيّنة - لا يمثّل هذا وحده أي ضمان: server action الإنشاء/التعديل
- * يعيد نفس التحقق بشكل ملزم قبل الحفظ، لأن حجزاً آخر قد يُنشأ بين لحظة هذا
- * الاستعلام ولحظة الإرسال الفعلي.
+ * تحقق فوري (من BookingForm أثناء اختيار التواريخ) - إرشادي فقط: الحفظ نفسه
+ * يُعيد الفحص، وقيد قاعدة البيانات يمنع التعارض نهائياً.
  */
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -14,19 +13,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
-  const checkInParam = request.nextUrl.searchParams.get("checkIn");
-  const checkOutParam = request.nextUrl.searchParams.get("checkOut");
-  const excludeId = request.nextUrl.searchParams.get("excludeId") ?? undefined;
+  const params = request.nextUrl.searchParams;
+  const checkInParam = params.get("checkIn");
+  const checkOutParam = params.get("checkOut");
+  const excludeId = params.get("excludeId") ?? undefined;
 
-  if (!checkInParam || !checkOutParam) {
-    return NextResponse.json({ error: "التاريخان مطلوبان" }, { status: 400 });
+  if (!isValidDateOnly(checkInParam) || !isValidDateOnly(checkOutParam)) {
+    return NextResponse.json({ error: "تاريخ غير صحيح" }, { status: 400 });
   }
 
   const checkIn = parseDateOnly(checkInParam);
   const checkOut = parseDateOnly(checkOutParam);
-
-  if (checkOut.getTime() <= checkIn.getTime()) {
-    return NextResponse.json({ error: "تاريخ الخروج يجب أن يكون بعد تاريخ الدخول" }, { status: 400 });
+  const nights = nightsBetween(checkIn, checkOut);
+  if (nights < 1 || nights > MAX_NIGHTS) {
+    return NextResponse.json({ error: "مدة غير صحيحة" }, { status: 400 });
   }
 
   const conflicts = await findConflictingBookings(checkIn, checkOut, excludeId);

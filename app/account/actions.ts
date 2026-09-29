@@ -65,7 +65,7 @@ export async function changePasswordAction(
 }
 
 const profileSchema = z.object({
-  fullName: z.string().trim().min(2, "الاسم مطلوب"),
+  fullName: z.string().trim().min(2, "الاسم مطلوب").max(100, "الاسم طويل جداً"),
   email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
   currentPassword: z.string().min(1, "أدخل كلمة المرور الحالية للتأكيد"),
 });

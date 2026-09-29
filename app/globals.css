@@ -30,8 +30,9 @@ body {
 .field-label {
   @apply mb-1 block text-sm font-medium text-slate-600;
 }
+/* text-base على الهاتف: خط أصغر من 16px يجعل Safari على iPhone يكبّر الصفحة تلقائياً عند الكتابة */
 .field-input {
-  @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500;
+  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:bg-slate-100 disabled:text-slate-500 sm:text-sm;
 }
 
 table.data-table {
