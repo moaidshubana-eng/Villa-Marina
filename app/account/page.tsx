@@ -3,6 +3,7 @@ import { getSession } from "@/src/lib/auth";
 import { ROLE_LABELS } from "@/src/lib/rbac";
 import PageHeader from "@/src/components/PageHeader";
 import ChangePasswordForm from "./ChangePasswordForm";
+import ProfileForm from "./ProfileForm";
 
 export default async function AccountPage() {
   const session = await getSession();
@@ -14,23 +15,9 @@ export default async function AccountPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card">
-          <h2 className="mb-4 font-semibold text-slate-700">بيانات الحساب</h2>
-          <dl className="space-y-2 text-sm">
-            <div>
-              <dt className="text-slate-500">الاسم</dt>
-              <dd>{session.fullName}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-500">البريد الإلكتروني</dt>
-              <dd dir="ltr" className="text-right">
-                {session.email}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-slate-500">الدور</dt>
-              <dd>{ROLE_LABELS[session.role]}</dd>
-            </div>
-          </dl>
+          <h2 className="mb-1 font-semibold text-slate-700">بيانات الحساب</h2>
+          <p className="mb-4 text-xs text-slate-500">الدور: {ROLE_LABELS[session.role]}</p>
+          <ProfileForm fullName={session.fullName} email={session.email} />
         </div>
 
         <div className="card">

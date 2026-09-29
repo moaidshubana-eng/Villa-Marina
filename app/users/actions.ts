@@ -11,7 +11,7 @@ export type FormState = { error?: string; success?: string };
 
 const createSchema = z.object({
   fullName: z.string().min(2, "الاسم مطلوب"),
-  email: z.string().email("البريد الإلكتروني غير صحيح"),
+  email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
   password: z.string().min(8, "كلمة المرور يجب ألا تقل عن 8 أحرف"),
   role: z.nativeEnum(UserRole),
 });

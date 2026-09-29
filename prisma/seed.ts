@@ -4,8 +4,8 @@
  * وضعان:
  *  - تطوير/عرض (الافتراضي): حسابان بكلمة مرور معروفة ChangeMe123! + حجوزات تجريبية.
  *  - إنتاج (SEED_DEMO_DATA=false، يُشغَّل تلقائياً عند كل نشر عبر vercel-build):
- *    حساب المالك فقط، بكلمة المرور من ADMIN_INITIAL_PASSWORD. يُنشأ مرة واحدة
- *    فقط - النشر اللاحق لا يمسّ كلمة مروره إن غيّرها المالك من داخل النظام.
+ *    حساب المالك فقط، بكلمة المرور من ADMIN_INITIAL_PASSWORD، وفقط إن كانت
+ *    قاعدة البيانات بلا أي مستخدم - النشر اللاحق لا يمسّ أي حساب.
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -16,9 +16,10 @@ async function seedProductionOwner() {
   const email = process.env.ADMIN_EMAIL || "admin@villamarina.ly";
   const password = process.env.ADMIN_INITIAL_PASSWORD;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    console.log(`حساب المالك ${email} موجود مسبقاً - لا تغيير.`);
+  // يُفحص وجود أي مستخدم، لا بريد المالك تحديداً: لو غيّر المالك بريده، فحص
+  // البريد وحده كان سيُعيد إنشاء حساب بكلمة المرور الأولى في النشر التالي.
+  if ((await prisma.user.count()) > 0) {
+    console.log("يوجد مستخدمون مسبقاً - لا تغيير.");
     return;
   }
   if (!password || password.length < 12) {

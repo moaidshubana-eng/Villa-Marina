@@ -13,7 +13,7 @@ import {
 } from "@/src/lib/auth";
 
 const loginSchema = z.object({
-  email: z.string().email("البريد الإلكتروني غير صحيح"),
+  email: z.string().trim().toLowerCase().email("البريد الإلكتروني غير صحيح"),
   password: z.string().min(1, "كلمة المرور مطلوبة"),
 });
 
